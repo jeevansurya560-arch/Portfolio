@@ -1,5 +1,4 @@
-# Portfolio
-Responsive personal portfolio website built with HTML and CSS showcasing my data analytics projects, frontend skills, dashboards, and technical experience in SQL, Python, Power BI, and web development.
+
 #  Jeevan Surya Portfolio
 
 A responsive personal portfolio website built using pure HTML and CSS to showcase my projects, technical skills, education, and analytics work.
