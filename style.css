@@ -218,7 +218,7 @@ nav ul li a:hover{
     align-items:center;
     gap:30px;
     width:max-content;
-    animation:scrollSkills 22s linear infinite;
+    animation:scrollSkills 15s linear infinite;
 }
 
 .skill-item{
