@@ -21,9 +21,6 @@ section{
     padding:100px 8%;
 }
 
-/* =========================
-   SECTION TITLE
-========================= */
 
 .section-title{
     font-size:42px;
@@ -45,11 +42,6 @@ section{
     bottom:-18px;
     border-radius:20px;
 }
-
-/* =========================
-   NAVBAR
-========================= */
-
 nav{
     width:100%;
     position:fixed;
@@ -89,12 +81,6 @@ nav ul li a:hover{
     color:#D4AF37;
 }
 
-/* =========================
-   HERO SECTION
-========================= */
-
-/* HERO */
-
 .hero{
 
     min-height:100vh;
@@ -105,11 +91,8 @@ nav ul li a:hover{
 
     align-items:center;
 
-    padding-top:120px;
+    padding:120px 8% 80px;
 }
-
-
-/* HERO CONTENT */
 
 .hero-content{
 
@@ -119,15 +102,22 @@ nav ul li a:hover{
 
     justify-content:center;
 
-    gap:60px;
-
-    flex-wrap:wrap;
+    gap:70px;
 
     width:100%;
+
+    max-width:1300px;
 }
 
 
-/* PHOTO */
+
+.hero-text{
+
+    flex:1;
+
+    max-width:650px;
+}
+
 
 .hero-photo{
 
@@ -137,25 +127,15 @@ nav ul li a:hover{
 
     object-fit:cover;
 
-    border-radius: 50%;
+    border-radius:50%;
 
-    border:4px solid #D4AF37;
+    border:6px solid #D4AF37;
 
     box-shadow:0 10px 30px rgba(0,0,0,0.12);
 
     flex-shrink:0;
 }
 
-
-/* TEXT */
-
-.hero-text{
-
-    max-width:650px;
-}
-
-
-/* NAME */
 
 .hero-name{
 
@@ -168,6 +148,8 @@ nav ul li a:hover{
     margin-bottom:20px;
 
     letter-spacing:-2px;
+
+    color:#111111;
 }
 
 .hero-name span{
@@ -176,7 +158,113 @@ nav ul li a:hover{
 }
 
 
-/* ABOUT */
+
+.hero-text h3{
+
+    font-size:28px;
+
+    color:#4B5563;
+
+    margin-bottom:25px;
+}
+
+
+.hero-text p{
+
+    font-size:19px;
+
+    line-height:1.9;
+
+    color:#6B7280;
+
+    margin-bottom:35px;
+}
+
+
+.hero-buttons{
+
+    display:flex;
+
+    justify-content:flex-start;
+}
+
+
+@media(max-width:992px){
+
+    .hero-content{
+
+        gap:45px;
+    }
+
+    .hero-photo{
+
+        width:250px;
+
+        height:250px;
+    }
+
+    .hero-name{
+
+        font-size:56px;
+    }
+
+}
+
+
+
+@media(max-width:768px){
+
+    .hero{
+
+        padding-top:160px;
+    }
+
+    .hero-content{
+
+        flex-direction:column-reverse;
+
+        text-align:center;
+
+        gap:40px;
+    }
+
+    .hero-text{
+
+        max-width:100%;
+    }
+
+    .hero-buttons{
+
+        justify-content:center;
+    }
+
+    .hero-photo{
+
+        width:200px;
+
+        height:200px;
+    }
+
+    .hero-name{
+
+        font-size:44px;
+
+        line-height:1.1;
+    }
+
+    .hero-text h3{
+
+        font-size:22px;
+    }
+
+    .hero-text p{
+
+        font-size:16px;
+
+        line-height:1.8;
+    }
+
+}
 
 .about-container{
 
@@ -214,8 +302,6 @@ nav ul li a:hover{
 }
 
 
-/* QUICK INFO */
-
 .about-card{
 
     width:380px;
@@ -245,52 +331,6 @@ nav ul li a:hover{
     color:#4B5563;
 }
 
-
-/* MOBILE */
-
-
-
-@media(max-width:768px){
-
-    .hero{
-
-        padding-top:180px;
-    }
-
-    .hero-name{
-
-        font-size:42px;
-    }
-
-    .hero-text h3{
-
-        font-size:22px;
-    }
-
-    .hero-text p{
-
-        font-size:17px;
-    }
-
-    .hero-photo{
-
-        width:200px;
-
-        height:200px;
-    }
-   
-    .hero-buttons{
-
-        justify-content:center;
-}
-}
-
-
-.hero-buttons{
-    display:flex;
-    justify-content:center;
-    margin-top:10px;
-}
 
 .resume-btn{
     display:inline-block;
@@ -322,8 +362,6 @@ nav ul li a:hover{
     margin-top:50px;
 }
 
-/* LEFT */
-
 .about-text{
     flex:1;
     min-width:320px;
@@ -336,8 +374,6 @@ nav ul li a:hover{
     color:#4B5563;
     text-align:left;
 }
-
-/* RIGHT CARD */
 
 .about-card{
     width:420px;
@@ -439,9 +475,6 @@ nav ul li a:hover{
     }
 }
 
-/* =========================
-   PROJECTS
-========================= */
 
 .projects-container{
     display:flex;
@@ -516,9 +549,6 @@ nav ul li a:hover{
     transform:scale(1.05);
 }
 
-/* =========================
-   EDUCATION
-========================= */
 
 .education-container{
     display:flex;
@@ -561,10 +591,6 @@ nav ul li a:hover{
     margin-bottom:10px;
 }
 
-/* =========================
-   CONTACT
-========================= */
-
 .contact{
     text-align:center;
 }
@@ -584,10 +610,6 @@ nav ul li a:hover{
     text-decoration:underline;
 }
 
-/* =========================
-   FOOTER
-========================= */
-
 footer{
     text-align:center;
     padding:30px;
@@ -595,10 +617,6 @@ footer{
     color:#6B7280;
     font-size:14px;
 }
-
-/* =========================
-   RESPONSIVE
-========================= */
 
 @media(max-width:900px){
 
@@ -636,20 +654,6 @@ footer{
         flex-wrap:wrap;
         justify-content:center;
     }
-
-    .hero-name{
-        font-size:52px;
-        line-height:1.1;
-    }
-
-    .hero-text h3{
-        font-size:22px;
-    }
-
-    .hero-text p{
-        font-size:18px;
-    }
-
     .section-title{
         font-size:34px;
     }
