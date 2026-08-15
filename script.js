@@ -1,143 +1,475 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // --- Navigation Toggle ---
-    const menuToggle = document.getElementById('menu-toggle');
-    const navLinks = document.getElementById('nav-links');
+const menuToggle = document.getElementById("menuToggle");
+const navLinks = document.getElementById("navLinks");
+const navItems = document.querySelectorAll(".nav-link");
+const sections = document.querySelectorAll("section[id]");
+const header = document.querySelector(".header");
 
-    if (menuToggle) {
-        menuToggle.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const finePointer = window.matchMedia("(pointer: fine)").matches;
+
+/* =========================
+   HAMBURGER / MOBILE NAV
+   ========================= */
+if (menuToggle && navLinks) {
+    menuToggle.addEventListener("click", () => {
+        const open = navLinks.classList.toggle("open");
+        menuToggle.setAttribute("aria-expanded", String(open));
+    });
+
+    navItems.forEach(link => {
+        link.addEventListener("click", () => {
+            navLinks.classList.remove("open");
+            menuToggle.setAttribute("aria-expanded", "false");
         });
-    }
+    });
 
-    // --- Custom Cursor ---
-    const dot = document.querySelector('.cursor-dot');
-    const ring = document.querySelector('.cursor-ring');
-    const glow = document.querySelector('.cursor-glow');
-
-    let mouseX = 0;
-    let mouseY = 0;
-    let ringX = 0;
-    let ringY = 0;
-    let glowX = 0;
-    let glowY = 0;
-
-    document.addEventListener('mousemove', (e) => {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-        
-        // Dot follows mouse instantly
-        if (dot) {
-            dot.style.left = `${mouseX}px`;
-            dot.style.top = `${mouseY}px`;
+    document.addEventListener("click", event => {
+        if (
+            navLinks.classList.contains("open") &&
+            !navLinks.contains(event.target) &&
+            !menuToggle.contains(event.target)
+        ) {
+            navLinks.classList.remove("open");
+            menuToggle.setAttribute("aria-expanded", "false");
         }
     });
 
-    function animate() {
-        // Smooth lerp for ring and glow
-        ringX += (mouseX - ringX) * 0.15;
-        ringY += (mouseY - ringY) * 0.15;
-        
-        glowX += (mouseX - glowX) * 0.05;
-        glowY += (mouseY - glowY) * 0.05;
-
-        if (ring) {
-            ring.style.left = `${ringX}px`;
-            ring.style.top = `${ringY}px`;
-        }
-        
-        if (glow) {
-            glow.style.left = `${glowX}px`;
-            glow.style.top = `${glowY}px`;
-        }
-
-        requestAnimationFrame(animate);
-    }
-    animate();
-
-    // --- Magnetic & Hover Effects ---
-    const interactives = document.querySelectorAll('.magnetic, a, button, .skill-item, .project-card');
-
-    interactives.forEach(el => {
-        el.addEventListener('mouseenter', () => {
-            if (ring) {
-                ring.style.width = '80px';
-                ring.style.height = '80px';
-                ring.style.borderColor = 'rgba(14, 165, 233, 0.4)';
-                ring.style.backgroundColor = 'rgba(14, 165, 233, 0.05)';
-            }
-            if (dot) {
-                dot.style.transform = 'translate(-50%, -50%) scale(1.5)';
-            }
-        });
-
-        el.addEventListener('mouseleave', () => {
-            if (ring) {
-                ring.style.width = '40px';
-                ring.style.height = '40px';
-                ring.style.borderColor = '#0ea5e9';
-                ring.style.backgroundColor = 'transparent';
-            }
-            if (dot) {
-                dot.style.transform = 'translate(-50%, -50%) scale(1)';
-            }
-            el.style.transform = 'translate(0, 0)';
-        });
-
-        // Magnetic effect for elements with .magnetic class
-        if (el.classList.contains('magnetic')) {
-            el.addEventListener('mousemove', (e) => {
-                const rect = el.getBoundingClientRect();
-                const x = e.clientX - rect.left - rect.width / 2;
-                const y = e.clientY - rect.top - rect.height / 2;
-                el.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px)`;
-            });
+    window.addEventListener("resize", () => {
+        if (window.innerWidth > 700) {
+            navLinks.classList.remove("open");
+            menuToggle.setAttribute("aria-expanded", "false");
         }
     });
+}
 
-    // --- Reveal on Scroll ---
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
+/* =========================
+   DESTROYED CURSOR ENGINE
+   ========================= */
+const cursorSystem = document.querySelector(".cursor-system");
+const cursorTrail = document.querySelector(".cursor-trail");
+
+const pointerFineQuery = window.matchMedia("(pointer: fine)");
+const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+// Mirrors the exact breakpoint the CSS mobile layout switches at. Without
+// this, resizing a desktop browser (real mouse, no motion preference) down
+// to a narrow width left the JS engine running and `body.cursor-ready`
+// applied — which, due to CSS specificity, silently beat the mobile
+// safety-net's `body { cursor: auto }` and left the user with NO visible
+// cursor at all (custom cursor hidden via display:none, system cursor
+// hidden via cursor:none). Tracking this breakpoint live closes that gap.
+const mobileWidthQuery = window.matchMedia("(max-width: 700px)");
+
+const canUseCustomCursor = () =>
+    pointerFineQuery.matches && !reducedMotionQuery.matches && !mobileWidthQuery.matches;
+
+let cursorEngine = null;
+
+function startCursorEngine() {
+    if (cursorEngine || !cursorSystem) return;
+
+    const core = document.querySelector(".cursor-core");
+    const ring = document.querySelector(".cursor-ring");
+    const label = document.querySelector(".cursor-label");
+
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+
+    let coreX = mouseX, coreY = mouseY;
+    let ringX = mouseX, ringY = mouseY;
+
+    let lastParticleX = mouseX;
+    let lastParticleY = mouseY;
+    let particleTimer = 0;
+    let hasPositioned = false;
+    let rafId = null;
+
+    // GPU-composited positioning (translate3d) for the dot/ring — avoids the
+    // layout + paint cost of animating left/top every single frame.
+    const setTransformPosition = (el, x, y) => {
+        el.style.transform = `translate3d(${x}px, ${y}px, 0) translate3d(-50%, -50%, 0)`;
     };
 
-    const observer = new IntersectionObserver((entries) => {
+    // The label keeps left/top: its own CSS class already drives a relative
+    // transform (offset + pop-in scale) that must stay independent of the
+    // raw cursor position.
+    const setLabelPosition = (x, y) => {
+        label.style.left = `${x}px`;
+        label.style.top = `${y}px`;
+    };
+
+    const placeAll = (x, y) => {
+        setTransformPosition(core, x, y);
+        setTransformPosition(ring, x, y);
+        setLabelPosition(x, y);
+    };
+
+    const handleMouseMove = event => {
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+
+        if (!hasPositioned) {
+            // First real pointer position we've seen: snap straight there
+            // (skip the lerp trail-in from the origin) and only now reveal
+            // the cursor + hide the system pointer, so there's never a
+            // frame with a misplaced or missing cursor.
+            hasPositioned = true;
+            coreX = ringX = mouseX;
+            coreY = ringY = mouseY;
+            placeAll(mouseX, mouseY);
+            cursorSystem.style.opacity = "1";
+            document.body.classList.add("cursor-ready");
+        }
+
+        const distance = Math.hypot(mouseX - lastParticleX, mouseY - lastParticleY);
+        particleTimer++;
+
+        if (distance > 18 && particleTimer % 2 === 0 && cursorTrail) {
+            const particle = document.createElement("span");
+            particle.className = "cursor-particle";
+            particle.style.left = `${mouseX}px`;
+            particle.style.top = `${mouseY}px`;
+            particle.style.opacity = `${Math.random() * .45 + .35}`;
+            cursorTrail.appendChild(particle);
+            setTimeout(() => particle.remove(), 700);
+
+            lastParticleX = mouseX;
+            lastParticleY = mouseY;
+        }
+    };
+
+    const handleMouseDown = () => cursorSystem.classList.add("click");
+    const handleMouseUp = () => cursorSystem.classList.remove("click");
+
+    const handleDocMouseLeave = () => {
+        cursorSystem.style.opacity = "0";
+        if (cursorTrail) cursorTrail.style.opacity = "0";
+    };
+
+    const handleDocMouseEnter = () => {
+        if (hasPositioned) cursorSystem.style.opacity = "1";
+        if (cursorTrail) cursorTrail.style.opacity = "1";
+    };
+
+    function animateCursor() {
+        coreX += (mouseX - coreX) * .3;
+        coreY += (mouseY - coreY) * .3;
+
+        ringX += (mouseX - ringX) * .16;
+        ringY += (mouseY - ringY) * .16;
+
+        setTransformPosition(core, coreX, coreY);
+        setTransformPosition(ring, ringX, ringY);
+        setLabelPosition(ringX, ringY);
+
+        rafId = requestAnimationFrame(animateCursor);
+    }
+
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("mouseleave", handleDocMouseLeave);
+    document.addEventListener("mouseenter", handleDocMouseEnter);
+
+    const interactiveElements = document.querySelectorAll(
+        "a, button, [data-cursor], .magnetic"
+    );
+
+    const hoverHandlers = [];
+
+    interactiveElements.forEach(element => {
+        const onEnter = () => {
+            cursorSystem.classList.add("hover");
+            label.textContent = element.dataset.cursor || "OPEN";
+            label.classList.add("visible");
+        };
+
+        const onLeave = () => {
+            cursorSystem.classList.remove("hover");
+            label.classList.remove("visible");
+        };
+
+        element.addEventListener("mouseenter", onEnter);
+        element.addEventListener("mouseleave", onLeave);
+        hoverHandlers.push({ element, onEnter, onLeave });
+    });
+
+    rafId = requestAnimationFrame(animateCursor);
+
+    cursorEngine = {
+        stop() {
+            cancelAnimationFrame(rafId);
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mousedown", handleMouseDown);
+            window.removeEventListener("mouseup", handleMouseUp);
+            document.removeEventListener("mouseleave", handleDocMouseLeave);
+            document.removeEventListener("mouseenter", handleDocMouseEnter);
+            hoverHandlers.forEach(({ element, onEnter, onLeave }) => {
+                element.removeEventListener("mouseenter", onEnter);
+                element.removeEventListener("mouseleave", onLeave);
+            });
+
+            cursorSystem.classList.remove("hover", "click");
+            cursorSystem.style.opacity = "0";
+            document.body.classList.remove("cursor-ready");
+        }
+    };
+
+}
+
+function stopCursorEngine() {
+    if (!cursorEngine) return;
+    cursorEngine.stop();
+    cursorEngine = null;
+}
+
+function syncCursorEngine() {
+    if (canUseCustomCursor()) {
+        startCursorEngine();
+    } else {
+        stopCursorEngine();
+    }
+}
+
+syncCursorEngine();
+
+// React live if a mouse gets connected/disconnected, the viewport crosses
+// the mobile breakpoint (e.g. resizing the window), or the user toggles
+// their OS "reduce motion" setting, while the page is already open — no
+// reload required for the experience to adapt.
+const handleCursorCapabilityChange = () => syncCursorEngine();
+
+if (typeof pointerFineQuery.addEventListener === "function") {
+    pointerFineQuery.addEventListener("change", handleCursorCapabilityChange);
+    mobileWidthQuery.addEventListener("change", handleCursorCapabilityChange);
+    reducedMotionQuery.addEventListener("change", handleCursorCapabilityChange);
+} else {
+    // Safari < 14 fallback
+    pointerFineQuery.addListener(handleCursorCapabilityChange);
+    mobileWidthQuery.addListener(handleCursorCapabilityChange);
+    reducedMotionQuery.addListener(handleCursorCapabilityChange);
+}
+
+
+/* =========================
+   MAGNETIC + GLASS SPOTLIGHT
+   ========================= */
+const magneticElements = document.querySelectorAll(".magnetic");
+
+if (finePointer && !prefersReducedMotion) {
+    magneticElements.forEach(element => {
+        element.addEventListener("mousemove", event => {
+            const rect = element.getBoundingClientRect();
+
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            element.style.setProperty("--spot-x", `${x}px`);
+            element.style.setProperty("--spot-y", `${y}px`);
+
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+
+            const pullX = (x - centerX) * 0.055;
+            const pullY = (y - centerY) * 0.055;
+
+            element.style.transform = `translate3d(${pullX}px, ${pullY}px, 0)`;
+        });
+
+        element.addEventListener("mouseleave", () => {
+            element.style.transform = "";
+        });
+    });
+}
+
+/* =========================
+   REVEAL ON SCROLL
+   ========================= */
+const revealElements = document.querySelectorAll(
+    ".section-heading, .project, .about-main, .stat, .skill, .education-card, .contact-glass"
+);
+
+if (prefersReducedMotion) {
+    revealElements.forEach(element => element.classList.add("reveal"));
+} else {
+    revealElements.forEach((element, index) => {
+        element.style.opacity = "0";
+        element.style.transform = "translateY(35px)";
+        element.style.transition =
+            `opacity .8s ease ${index % 3 * 80}ms, transform .8s cubic-bezier(.2,.8,.2,1) ${index % 3 * 80}ms`;
+    });
+
+    const observer = new IntersectionObserver(entries => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                entry.target.classList.add('reveal');
+                entry.target.classList.add("reveal");
                 observer.unobserve(entry.target);
             }
         });
-    }, observerOptions);
+    }, { threshold: .12 });
 
-    const revealElements = document.querySelectorAll('.about-card, .skill-item, .project-card, .edu-card, .section-title');
-    revealElements.forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(30px)';
-        el.style.transition = 'all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
-        observer.observe(el);
+    revealElements.forEach(element => observer.observe(element));
+}
+
+/* =========================
+   ACTIVE NAV SECTION
+   ========================= */
+const sectionObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+
+        navItems.forEach(link => link.classList.remove("active"));
+
+        const activeLink = document.querySelector(
+            `.nav-link[href="#${entry.target.id}"]`
+        );
+
+        if (activeLink) activeLink.classList.add("active");
     });
+}, {
+    rootMargin: "-40% 0px -50% 0px"
+});
 
-    // CSS class for reveala
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .reveal {
-            opacity: 1 !important;
-            transform: translateY(0) !important;
-        }
-    `;
-    document.head.appendChild(style);
+sections.forEach(section => sectionObserver.observe(section));
 
-    // --- Scroll Progress Nav ---
-    window.addEventListener('scroll', () => {
-        const nav = document.querySelector('nav');
-        if (window.scrollY > 50) {
-            nav.style.padding = '15px 8%';
-            nav.style.background = 'rgba(255, 255, 255, 0.7)';
-            nav.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.05)';
-        } else {
-            nav.style.padding = '20px 8%';
-            nav.style.background = 'rgba(255, 255, 255, 0.1)';
-            nav.style.boxShadow = 'none';
-        }
+/* =========================
+   HEADER SCROLL STATE
+   ========================= */
+const updateHeader = () => {
+    if (header) {
+        header.classList.toggle("scrolled", window.scrollY > 40);
+        header.style.paddingTop = window.scrollY > 40 ? "12px" : "";
+    }
+};
+
+window.addEventListener("scroll", updateHeader, { passive: true });
+updateHeader();
+
+/* =========================
+   SMOOTH INTERNAL LINKS
+   ========================= */
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener("click", event => {
+        const selector = anchor.getAttribute("href");
+        const target = document.querySelector(selector);
+
+        if (!target) return;
+
+        event.preventDefault();
+
+        target.scrollIntoView({
+            behavior: prefersReducedMotion ? "auto" : "smooth",
+            block: "start"
+        });
     });
 });
+
+/* =========================
+   PAC-MAN HEADER EASTER EGG
+   ========================= */
+const pacman = document.getElementById("pacman");
+const pacTrack = document.getElementById("pacmanTrack");
+const pacDotsWrap = document.getElementById("pacmanDots");
+const pacScoreEl = document.getElementById("pacmanScore");
+
+if (pacman && pacTrack && pacDotsWrap && pacScoreEl) {
+    const DOT_COUNT = 14;
+    let score = 0;
+    const dots = [];
+
+    const updateScore = () => {
+        pacScoreEl.textContent = `SCORE ${String(score).padStart(3, "0")}`;
+    };
+
+    const eatDot = dot => {
+        if (dot.eaten) return;
+        dot.eaten = true;
+        dot.el.classList.add("eaten");
+        score += 10;
+        updateScore();
+    };
+
+    const respawnDots = () => {
+        dots.forEach(dot => {
+            dot.eaten = false;
+            dot.el.classList.remove("eaten");
+        });
+    };
+
+    for (let i = 0; i < DOT_COUNT; i++) {
+        const dotEl = document.createElement("span");
+        dotEl.className = "pacman-dot";
+        pacDotsWrap.appendChild(dotEl);
+
+        const dot = { el: dotEl, eaten: false };
+        dots.push(dot);
+
+        dotEl.addEventListener("click", () => eatDot(dot));
+    }
+
+    updateScore();
+
+    let boosted = false;
+    let boostTimeout = null;
+
+    pacman.addEventListener("click", () => {
+        boosted = true;
+        pacman.classList.add("boosted");
+
+        clearTimeout(boostTimeout);
+        boostTimeout = setTimeout(() => {
+            boosted = false;
+            pacman.classList.remove("boosted");
+        }, 4000);
+    });
+
+    if (prefersReducedMotion) {
+        pacman.style.left = "calc(50% - 9px)";
+    } else {
+        let posX = 0;
+        let direction = 1;
+        let lastTime = performance.now();
+
+        const step = now => {
+            const dt = Math.min((now - lastTime) / 1000, 0.05);
+
+            lastTime = now;
+
+            const trackWidth = pacTrack.clientWidth;
+            const pacSize = pacman.offsetWidth;
+            const maxX = Math.max(trackWidth - pacSize, 0);
+            const speed = boosted ? 90 : 40;
+
+            posX += direction * speed * dt;
+
+            if (posX >= maxX) {
+                posX = maxX;
+                direction = -1;
+                pacman.classList.add("facing-left");
+                respawnDots();
+            } else if (posX <= 0) {
+                posX = 0;
+                direction = 1;
+                pacman.classList.remove("facing-left");
+                respawnDots();
+            }
+
+            pacman.style.left = `${posX}px`;
+
+            const pacCenter = posX + pacSize / 2;
+
+            dots.forEach(dot => {
+                if (dot.eaten) return;
+
+                const dotCenter = dot.el.offsetLeft + dot.el.offsetWidth / 2;
+
+                if (Math.abs(dotCenter - pacCenter) < 8) {
+                    eatDot(dot);
+                }
+            });
+
+            requestAnimationFrame(step);
+        };
+
+        requestAnimationFrame(step);
+    }
+}
